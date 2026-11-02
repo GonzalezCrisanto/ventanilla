@@ -1,0 +1,144 @@
+/* Identidad Ventanilla: señalética de ruta. Las fuentes están en web/fuentes/
+   (licencia OFL), así la página se ve igual aunque no haya internet. */
+
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url("fuentes/barlow-400.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url("fuentes/barlow-500.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-display: swap; src: url("fuentes/barlow-condensed-500.woff2") format("woff2"); }
+
+:root {
+  --asfalto: #22262B;
+  --amarillo: #F2B705;
+  --hueso: #F5F3EE;
+  --verde: #1E7D4F;
+  --blanco: #FFFFFF;
+  --gris: #5A5F66;
+  --linea: #D6D3CB;
+  --riel: #E7E4DC;
+  --rojo: #B3261E;
+  --titular: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--hueso);
+  color: var(--asfalto);
+  font-family: "Barlow", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* Barra superior: marca y el sistema por dentro */
+.barra {
+  background: var(--asfalto);
+  color: var(--hueso);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+}
+.marca-nombre { font-family: var(--titular); font-weight: 500; font-size: 36px; line-height: 1; letter-spacing: 0.5px; }
+.marca-ruta { width: 128px; border-top: 3px dashed var(--amarillo); margin: 5px 0 4px; }
+.marca-frase { color: var(--amarillo); font-size: 14px; }
+
+.metricas { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; }
+.metricas li { border: 1px solid #4A4F56; border-radius: 6px; padding: 4px 10px; font-size: 13px; }
+.metricas b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.metricas li.lleno { border-color: var(--amarillo); color: var(--amarillo); }
+
+/* Tres columnas: viajes, micro, compra */
+.contenido {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 290px;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 920px) {
+  .contenido { grid-template-columns: minmax(0, 1fr); }
+}
+
+h2 { font-family: var(--titular); font-weight: 500; font-size: 24px; margin: 0 0 12px; }
+.ayuda { color: var(--gris); font-size: 14px; margin: 0 0 12px; }
+
+/* Lista de viajes */
+.viajes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.viaje {
+  width: 100%;
+  text-align: left;
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.viaje:hover { border-color: var(--gris); }
+.viaje.activo { border: 2px solid var(--asfalto); padding: 9px 11px; }
+.viaje .ruta { display: block; font-weight: 500; }
+.viaje .detalle { color: var(--gris); font-size: 14px; }
+
+/* El micro: 2 asientos, pasillo, 2 asientos */
+.micro { display: flex; flex-direction: column; align-items: center; }
+.micro h2, .micro .ayuda { align-self: stretch; }
+.carroceria {
+  background: var(--blanco);
+  border: 2px solid var(--asfalto);
+  border-radius: 44px 44px 12px 12px;
+  padding: 14px 20px 20px;
+}
+.frente { text-align: center; color: var(--gris); font-size: 13px; border-bottom: 1px dashed var(--linea); padding-bottom: 8px; margin-bottom: 14px; }
+.asientos { display: grid; grid-template-columns: repeat(2, 44px) 28px repeat(2, 44px); grid-auto-rows: 40px; gap: 6px; }
+
+.asiento, .muestra {
+  border-radius: 8px 8px 4px 4px;
+  border: 2px solid transparent;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.asiento { cursor: pointer; padding: 0; }
+.libre { background: var(--hueso); border-color: var(--asfalto); color: var(--asfalto); }
+.reservado { background: var(--amarillo); color: var(--asfalto); }
+.pagando { background: var(--amarillo); border: 2px dashed var(--asfalto); color: var(--asfalto); }
+.vendido { background: var(--asfalto); color: var(--hueso); }
+.tuyo { background: var(--verde); border-color: var(--verde); color: var(--blanco); }
+.asiento.vendido, .asiento.reservado, .asiento.pagando { cursor: not-allowed; }
+.asiento.elegido { outline: 3px solid var(--verde); outline-offset: 2px; }
+.asiento:focus-visible, button:focus-visible { outline: 3px solid var(--amarillo); outline-offset: 2px; }
+
+.leyenda { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0; margin: 16px 0 0; font-size: 13px; color: var(--gris); }
+.leyenda li { display: flex; align-items: center; gap: 6px; }
+.muestra { width: 30px; height: 26px; font-size: 12px; }
+
+/* Panel de compra */
+.tarjeta { background: var(--blanco); border: 1px solid var(--linea); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.asiento-grande { font-family: var(--titular); font-weight: 500; font-size: 32px; line-height: 1.1; }
+.ubicacion { color: var(--gris); font-size: 14px; margin-bottom: 12px; }
+.vence { font-size: 15px; margin: 12px 0 6px; }
+.vence b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.reloj { height: 8px; background: var(--riel); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+.reloj div { height: 100%; background: var(--amarillo); }
+
+.aviso { background: #FCEFC2; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; font-size: 14px; }
+.aviso:empty { display: none; }
+
+.boton { font: inherit; font-weight: 500; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+.boton.principal { width: 100%; background: var(--asfalto); color: var(--hueso); border: 2px solid var(--asfalto); }
+.boton.principal:hover { background: #3A3F46; }
+.boton.secundario { background: transparent; color: var(--asfalto); border: 1.5px solid var(--asfalto); }
+.boton.secundario:hover { background: var(--hueso); }
+.boton[aria-busy="true"] { cursor: progress; opacity: 0.8; }
+.botones { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.mensaje { min-height: 1.4em; margin: 12px 0 0; font-size: 14px; }
+.mensaje.error { color: var(--rojo); }
+.mensaje.ok { color: var(--verde); }

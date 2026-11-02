@@ -1,0 +1,4 @@
+# Solo para las pruebas (etapa 4) y el gráfico del benchmark (etapa 5).
+# El resto del proyecto usa únicamente la biblioteca estándar.
+pytest>=8.0
+matplotlib>=3.8

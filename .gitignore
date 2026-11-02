@@ -1,0 +1,12 @@
+# Material de la cursada: no es parte del código entregado
+Docs/
+
+# Generados por Python y pytest
+__pycache__/
+.pytest_cache/
+
+# Base de datos que se crea al correr la demo, la consola o la web
+resultados/ventas.db
+
+# Configuración local para el panel del navegador de Claude
+.claude/

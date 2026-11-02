@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventanilla · pasajes de micro</title>
+<link rel="icon" href="/estaticos/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/estaticos/estilo.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="marca">
+    <div class="marca-nombre">ventanilla</div>
+    <div class="marca-ruta" aria-hidden="true"></div>
+    <div class="marca-frase">Un asiento, un pasajero</div>
+  </div>
+  <ul class="metricas" aria-label="El sistema por dentro">
+    <li>hilos vivos <b id="m-hilos">-</b></li>
+    <li>pedidos en cola <b id="m-cola">-</b></li>
+    <li id="m-cobros-caja">cobros en curso <b id="m-cobros">-</b></li>
+    <li>clientes comprando <b id="m-comprando">-</b></li>
+    <li>vendidos <b id="m-vendidos">-</b></li>
+  </ul>
+</header>
+
+<main class="contenido">
+  <section class="viajes" aria-labelledby="t-viajes">
+    <h2 id="t-viajes">Viajes</h2>
+    <ul id="lista-viajes"></ul>
+  </section>
+
+  <section class="micro" aria-labelledby="t-micro">
+    <h2 id="t-micro">Elegí tu asiento</h2>
+    <p class="ayuda" id="titulo-viaje">Cargando viajes…</p>
+    <div class="carroceria">
+      <div class="frente">frente del micro</div>
+      <div id="asientos" class="asientos" role="group" aria-label="Asientos del micro"></div>
+    </div>
+    <ul class="leyenda" aria-label="Qué significa cada color">
+      <li><span class="muestra libre">07</span>libre</li>
+      <li><span class="muestra reservado">R</span>reservado</li>
+      <li><span class="muestra pagando">$</span>pagando</li>
+      <li><span class="muestra vendido">X</span>vendido</li>
+      <li><span class="muestra tuyo">TU</span>tuyo</li>
+    </ul>
+  </section>
+
+  <aside class="panel">
+    <section class="tarjeta" aria-labelledby="t-compra">
+      <h2 id="t-compra">Tu compra</h2>
+      <div id="compra"></div>
+      <p id="mensaje" class="mensaje" role="status" aria-live="polite"></p>
+    </section>
+    <section class="tarjeta" aria-labelledby="t-simulados">
+      <h2 id="t-simulados">Clientes simulados</h2>
+      <p class="ayuda">Salen todos juntos a competir con vos por los asientos.</p>
+      <div class="botones">
+        <button class="boton secundario" data-cantidad="50">Lanzar 50</button>
+        <button class="boton secundario" data-cantidad="150">Lanzar 150</button>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<script src="/estaticos/app.js"></script>
+</body>
+</html>
