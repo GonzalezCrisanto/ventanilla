@@ -110,6 +110,10 @@ class ServidorVentanilla(ThreadingHTTPServer):
     # y que server_close() los espere a todos (block_on_close).
     daemon_threads = False
     block_on_close = True
+    # Conexiones que el sistema operativo deja esperando mientras el servidor
+    # las acepta. El valor por defecto (5) se llena cuando llegan muchos
+    # navegadores juntos y Linux corta los que sobran con "connection reset".
+    request_queue_size = 64
 
     def __init__(self, direccion, sistema):
         super().__init__(direccion, Manejador)
