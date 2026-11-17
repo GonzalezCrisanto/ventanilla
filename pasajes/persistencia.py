@@ -41,34 +41,53 @@ CREAR_TABLA = """
 """
 
 
+class ErrorRegistroVentas(RuntimeError):
+    """The writer could not initialize or persist the queued sales."""
+
+
 class RegistroVentas:
     def __init__(self, ruta):
         self.ruta = ruta
         self.cola = queue.Queue()  # sin límite: registrar() nunca bloquea al worker
         self.hilo = threading.Thread(target=self._escribir, name="escritor-sqlite")
         self.rechazadas_por_duplicado = 0
+        self._listo = threading.Event()
+        self._error = None
 
     def __enter__(self):
         self.hilo.start()
+        self._listo.wait()
+        if self._error is not None:
+            self.hilo.join()
+            self.comprobar_error()
         return self
 
-    def __exit__(self, *error):
+    def __exit__(self, tipo, *error):
         self.cola.put(None)  # centinela: no hay más ventas
         self.hilo.join()
+        if tipo is None:  # Do not hide an exception already raised by the caller.
+            self.comprobar_error()
+
+    def comprobar_error(self):
+        if self._error is not None:
+            raise ErrorRegistroVentas("No se pudieron guardar las ventas.") from self._error
 
     def registrar(self, viaje, reserva):
         """Lo llaman los workers después de confirmar una compra."""
+        self.comprobar_error()
         venta = (viaje.id, reserva.numero_asiento, reserva.cliente.id, reserva.cliente.nombre,
                  viaje.precio, datetime.now().isoformat(timespec="seconds"))
         self.cola.put(venta)
 
     def _escribir(self):
         """El hilo escritor: el único que toca la base."""
-        self.ruta.parent.mkdir(parents=True, exist_ok=True)
-        conexion = sqlite3.connect(self.ruta)
+        conexion = None
         try:
+            self.ruta.parent.mkdir(parents=True, exist_ok=True)
+            conexion = sqlite3.connect(self.ruta)
             conexion.execute("DROP TABLE IF EXISTS ventas")
             conexion.execute(CREAR_TABLA)
+            self._listo.set()
             while True:
                 venta = self.cola.get()
                 if venta is None:  # centinela
@@ -79,8 +98,15 @@ class RegistroVentas:
                 except sqlite3.IntegrityError:
                     # Solo pasaría si se vendiera un asiento dos veces.
                     self.rechazadas_por_duplicado += 1
+        except Exception as error:
+            self._error = error
         finally:
-            conexion.close()
+            try:
+                if conexion is not None:
+                    conexion.close()
+            except Exception as error:
+                self._error = self._error or error
+            self._listo.set()  # Also release startup if connecting or creating the table failed.
 
 
 def ultimas_ventas(ruta, cantidad=10):

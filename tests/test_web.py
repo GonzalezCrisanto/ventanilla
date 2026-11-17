@@ -13,7 +13,7 @@ import urllib.request
 import pytest
 
 from pasajes import config
-from pasajes.persistencia import RegistroVentas
+from pasajes.persistencia import ErrorRegistroVentas, RegistroVentas
 from pasajes.sistema import Sistema
 from web import ServidorVentanilla
 
@@ -93,7 +93,9 @@ def test_compra_completa_por_http(web):
     assert {"numero": 5, "estado": "vendido", "tuyo": True} in mapa["asientos"]
 
 
-def test_veinte_navegadores_piden_el_mismo_asiento_a_la_vez(web):
+def test_veinte_navegadores_piden_el_mismo_asiento_a_la_vez(web, monkeypatch):
+    # Test contention, not valid reuse after expiry while TCP requests arrive.
+    monkeypatch.setattr(config, "TIEMPO_RESERVA", 30)
     clientes = [nueva_sesion(web) for _ in range(20)]
     largada = threading.Barrier(20)  # los 20 pedidos salen juntos
     estados = [None] * 20  # cada hilo escribe solo su casillero
@@ -121,6 +123,18 @@ def test_no_se_puede_pagar_una_reserva_ajena(web):
     estado, _ = pedir_json("POST", f"{web}/api/reservas/{reserva['codigo']}/pago", {"cliente": beto})
 
     assert estado == 403
+
+
+def test_storage_error_returns_500_and_worker_keeps_serving(web, monkeypatch):
+    def fail_registration(*args):
+        raise ErrorRegistroVentas("injected storage failure")
+
+    monkeypatch.setattr(RegistroVentas, "registrar", fail_registration)
+    cliente = nueva_sesion(web)
+    _, reserva = pedir_json("POST", web + "/api/reservas", {"cliente": cliente, "viaje": VIAJE, "asiento": 5})
+    estado, respuesta = pedir_json("POST", f"{web}/api/reservas/{reserva['codigo']}/pago", {"cliente": cliente})
+    assert estado == 500 and "registro de ventas" in respuesta["error"]
+    assert pedir_http("POST", web + "/api/reservas", {"cliente": cliente, "viaje": VIAJE, "asiento": 6})[0] == 201
 
 
 def test_el_pago_puede_vencer_esperando_en_la_fila(monkeypatch, sin_deadlock):
