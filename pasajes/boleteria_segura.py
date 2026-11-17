@@ -81,6 +81,8 @@ class BoleteriaSegura:
             2. sin lock:    cobrar (lento), de a PAGOS_SIMULTANEOS a la vez
             3. con lock:    cerrar la venta o liberar el asiento
         """
+        if self.registro is not None:
+            self.registro.comprobar_error()
         viaje = self.viajes[reserva.id_viaje]
         asiento = viaje.asientos[reserva.numero_asiento]
         lock = self.locks[reserva.id_viaje]
@@ -89,6 +91,9 @@ class BoleteriaSegura:
         with lock:
             if reserva.estado is not EstadoReserva.ACTIVA:
                 return False, f"la reserva está {reserva.estado.value}"
+            # Claim payment only once, before checking expiry or releasing the lock.
+            if asiento.reserva is not reserva or asiento.estado is not EstadoAsiento.RESERVADO:
+                return False, "la reserva no está disponible para pagar"
             if time.monotonic() >= reserva.vence:
                 self._vencer(reserva, asiento)
                 return False, "la reserva venció"

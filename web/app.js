@@ -53,6 +53,7 @@ function mostrarMensaje(texto, tipo) {
 // La reserva tiene que seguir vigente cuando un worker ATIENDE el pago, no cuando se manda.
 // Con mucha carga el pago espera en la fila, y conviene que el cliente lo sepa.
 function textoAviso() {
+  if (estado.reserva?.pagoIncierto) return "El resultado del pago es incierto. Consultá el estado del asiento antes de reintentar.";
   const pedidos = `${pedidosEnFila} ${pedidosEnFila === 1 ? "pedido" : "pedidos"}`;
   if (estado.enFila) {
     // Con la cola vacía el pago igual puede estar esperando: los workers están ocupados cobrando.
@@ -163,10 +164,12 @@ function dibujarCompra() {
     const r = estado.reserva;
     parrafo("asiento-grande", `Asiento ${r.asiento}`);
     parrafo("ubicacion", ubicacion(r.asiento));
-    const vence = parrafo("vence", "");
-    vence.innerHTML = 'Vence en <b id="cuenta"></b>';
-    const reloj = parrafo("reloj", "");
-    reloj.appendChild(document.createElement("div")).id = "barra";
+    if (!r.pagoIncierto) {
+      const vence = parrafo("vence", "");
+      vence.innerHTML = 'Vence en <b id="cuenta"></b>';
+      const reloj = parrafo("reloj", "");
+      reloj.appendChild(document.createElement("div")).id = "barra";
+    }
     parrafo("aviso", textoAviso()).id = "aviso-fila";
     boton(`Pagar ${pesos(r.precio)}`, pagar);
     actualizarCuenta();
@@ -180,7 +183,7 @@ function dibujarCompra() {
 }
 
 function actualizarCuenta() {
-  if (!estado.reserva) return;
+  if (!estado.reserva || estado.reserva.pagoIncierto) return;
   const restante = Math.max(0, estado.reserva.venceEn - performance.now());
   const segundos = Math.ceil(restante / 1000);
   const cuenta = $("cuenta");
@@ -209,7 +212,7 @@ function elegirViaje(id) {
 
 function tocarAsiento(numero) {
   if (estado.reserva) {
-    mostrarMensaje("Primero pagá tu reserva, o esperá a que venza.", "error");
+    mostrarMensaje(estado.reserva.pagoIncierto ? textoAviso() : "Primero pagá tu reserva, o esperá a que venza.", "error");
     return;
   }
   if (botonesAsiento.get(numero).dataset.estado !== "libre") {
@@ -224,38 +227,53 @@ function tocarAsiento(numero) {
 async function reservar() {
   estado.ocupado = true;
   dibujarCompra();
-  const pedido = () => api("POST", "/api/reservas", { cliente: estado.cliente, viaje: estado.viaje, asiento: estado.elegido });
-  let r = await pedido();
-  if (r.estado === 401) {  // el servidor se reinició: pedimos una sesión nueva
-    await iniciarSesion(true);
-    r = await pedido();
+  try {
+    const pedido = () => api("POST", "/api/reservas", { cliente: estado.cliente, viaje: estado.viaje, asiento: estado.elegido });
+    let r = await pedido();
+    if (r.estado === 401) {  // el servidor se reinició: pedimos una sesión nueva
+      await iniciarSesion(true);
+      r = await pedido();
+    }
+    if (r.ok) {
+      const c = r.cuerpo;
+      estado.reserva = { codigo: c.codigo, viaje: c.viaje, asiento: c.asiento, precio: c.precio,
+                         venceEn: performance.now() + c.vence_en * 1000, total: c.vence_en * 1000 };
+      estado.elegido = null;
+      relojReserva = setInterval(actualizarCuenta, 250);
+      mostrarMensaje(`Reservado: tenés ${Math.round(c.vence_en)} segundos para pagar.`, "ok");
+    } else {
+      estado.elegido = null;
+      mostrarMensaje(r.cuerpo.error, "error");
+    }
+  } catch (error) {
+    mostrarMensaje("Se perdió la conexión. Consultá el mapa antes de intentar reservar de nuevo.", "error");
+  } finally {
+    estado.ocupado = false;
+    dibujarCompra();
   }
-  estado.ocupado = false;
-  if (r.ok) {
-    const c = r.cuerpo;
-    estado.reserva = { codigo: c.codigo, viaje: c.viaje, asiento: c.asiento, precio: c.precio,
-                       venceEn: performance.now() + c.vence_en * 1000, total: c.vence_en * 1000 };
-    estado.elegido = null;
-    relojReserva = setInterval(actualizarCuenta, 250);
-    mostrarMensaje(`Reservado: tenés ${Math.round(c.vence_en)} segundos para pagar.`, "ok");
-  } else {
-    estado.elegido = null;
-    mostrarMensaje(r.cuerpo.error, "error");
-  }
-  dibujarCompra();
 }
 
 async function pagar() {
   estado.ocupado = true;
   estado.enFila = true;
   dibujarCompra();
-  const r = await api("POST", `/api/reservas/${estado.reserva.codigo}/pago`, { cliente: estado.cliente });
-  estado.ocupado = false;
-  estado.enFila = false;
-  estado.reserva = null;
-  clearInterval(relojReserva);
-  mostrarMensaje(r.ok ? r.cuerpo.mensaje : r.cuerpo.error, r.ok ? "ok" : "error");
-  dibujarCompra();
+  try {
+    const r = await api("POST", `/api/reservas/${estado.reserva.codigo}/pago`, { cliente: estado.cliente });
+    if (r.estado < 500) {
+      estado.reserva = null;
+      clearInterval(relojReserva);
+    } else if (r.estado !== 503) {
+      estado.reserva.pagoIncierto = true;
+    }
+    mostrarMensaje(r.ok ? r.cuerpo.mensaje : r.cuerpo.error, r.ok ? "ok" : "error");
+  } catch (error) {
+    estado.reserva.pagoIncierto = true;
+    mostrarMensaje("Se perdió la conexión. No se pudo confirmar el resultado: consultá el estado de tu asiento antes de reintentar.", "error");
+  } finally {
+    estado.ocupado = false;
+    estado.enFila = false;
+    dibujarCompra();
+  }
 }
 
 async function lanzarClientes(cantidad) {
