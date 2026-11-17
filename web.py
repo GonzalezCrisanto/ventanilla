@@ -46,7 +46,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from pasajes import config
 from pasajes.modelo import Cliente, EstadoAsiento, EstadoReserva
-from pasajes.persistencia import RegistroVentas
+from pasajes.persistencia import ErrorRegistroVentas, RegistroVentas
 from pasajes.simulacion import Pedido, PedidoAbandonado, pedir
 from pasajes.sistema import Sistema
 
@@ -276,6 +276,9 @@ class Manejador(BaseHTTPRequestHandler):
         except PedidoAbandonado:  # ningún worker lo tomó a tiempo: es seguro que no se hizo
             return self.responder_error(HTTPStatus.SERVICE_UNAVAILABLE,
                                         "Nadie atendió tu pedido a tiempo: no se hizo nada. Probá de nuevo.")
+        except ErrorRegistroVentas:
+            return self.responder_error(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                        "Falló el registro de ventas. Consultá el estado de tu asiento antes de reintentar.")
         # Una reserva VENCIDA ya no cambia más: se puede leer sin el lock del viaje.
         if not ok and reserva.estado is EstadoReserva.VENCIDA and enviado < reserva.vence:
             return self.responder_error(HTTPStatus.CONFLICT, "Tu reserva venció mientras el pago esperaba en la fila. "
