@@ -54,6 +54,9 @@ TIMEOUT_RESPUESTA = _decimal("TIMEOUT_RESPUESTA", 10.0)    # cuánto espera el c
 WEB_HOST = os.environ.get("WEB_HOST", "127.0.0.1")  # "0.0.0.0" para abrirla desde otros equipos de la red
 WEB_PUERTO = _entero("WEB_PUERTO", 8000)
 
+# La web arranca con esta boletería; en la página se cambia con un botón.
+MODO_INICIAL = os.environ.get("MODO", "segura")  # "segura" o "insegura"
+
 # --- Persistencia ---
 RUTA_BASE = Path(os.environ.get("RUTA_BASE", CARPETA_PROYECTO / "resultados" / "ventas.db"))
 

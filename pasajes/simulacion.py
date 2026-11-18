@@ -145,8 +145,12 @@ def buscar_asiento(boleteria, rng, origen, destino):
     return None
 
 
-def hilo_cliente(boleteria, cola, rutas, apertura, resultado):
-    """Un cliente: busca un viaje, reserva un asiento, paga y confirma."""
+def hilo_cliente(boleteria, cola, rutas, apertura, resultado, cancelar=None):
+    """Un cliente: busca un viaje, reserva un asiento, paga y confirma.
+
+    `cancelar` es un Event opcional: si alguien lo activa (el botón Reiniciar de
+    la web), el cliente deja de comprar enseguida, aunque esté en la pausa en la
+    que "carga la tarjeta". Sin él, el cliente compra hasta terminar."""
     cliente = resultado.cliente
     rng = random.Random(config.SEMILLA + cliente.id)  # azar propio: no se comparte entre hilos
     origen, destino = rng.choice(rutas)
@@ -154,6 +158,10 @@ def hilo_cliente(boleteria, cola, rutas, apertura, resultado):
     apertura.wait()  # todos esperan a que abra la venta y salen juntos
 
     for intento in range(1, config.INTENTOS_POR_CLIENTE + 1):
+        if cancelar is not None and cancelar.is_set():
+            resultado.estado = "sin atender"  # su pedido no se ejecutó
+            resultado.detalle = "la simulación se reinició"
+            return
         resultado.intentos = intento
         encontrado = buscar_asiento(boleteria, rng, origen, destino)
         if encontrado is None:
@@ -173,7 +181,14 @@ def hilo_cliente(boleteria, cola, rutas, apertura, resultado):
                 resultado.reserva = reserva
                 return
 
-            time.sleep(rng.uniform(config.DEMORA_CLIENTE_MIN, config.DEMORA_CLIENTE_MAX))  # carga la tarjeta
+            pausa = rng.uniform(config.DEMORA_CLIENTE_MIN, config.DEMORA_CLIENTE_MAX)  # carga la tarjeta
+            if cancelar is None:
+                time.sleep(pausa)
+            elif cancelar.wait(pausa):  # wait() se despierta apenas alguien activa el evento
+                resultado.estado = "sin atender"
+                resultado.detalle = "la simulación se reinició"
+                resultado.reserva = reserva  # sin pagar: vence sola
+                return
             ok, motivo = pedir(cola, Pedido("confirmar", cliente, reserva=reserva))
         except PedidoAbandonado as abandonado:
             resultado.estado = "sin atender"  # se cansó de esperar: su pedido no se ejecutó
@@ -192,8 +207,12 @@ def hilo_cliente(boleteria, cola, rutas, apertura, resultado):
         resultado.detalle = motivo  # rechazada o vencida: prueba con otro asiento
 
 
-def hilo_worker(boleteria, cola):
-    """Un worker: saca pedidos de la cola y los procesa hasta recibir el centinela."""
+def hilo_worker(boleteria, cola, observador=None):
+    """Un worker: saca pedidos de la cola y los procesa hasta recibir el centinela.
+
+    `observador(pedido, respuesta)` es opcional: se llama con cada resultado
+    antes de contestarle al cliente. Lo usa la web para sus estadísticas. Si
+    fallara, no debe frenar las ventas: el worker sigue igual."""
     while True:
         pedido = cola.get()  # bloquea sin gastar CPU mientras la cola está vacía
         if pedido is None:   # centinela: no hay más trabajo
@@ -208,6 +227,11 @@ def hilo_worker(boleteria, cola):
         except Exception as error:
             # Igual respondemos: si no, el cliente esperaría hasta el timeout.
             respuesta = error
+        if observador is not None:
+            try:
+                observador(pedido, respuesta)
+            except Exception:
+                pass  # las estadísticas nunca pueden dejar a un cliente sin respuesta
         pedido.respuesta.put(respuesta)
 
 
