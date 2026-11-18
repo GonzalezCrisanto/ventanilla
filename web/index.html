@@ -7,7 +7,9 @@
 <link rel="icon" href="/estaticos/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/estaticos/estilo.css">
 </head>
-<body>
+<body data-modo="segura" data-vista="venta">
+
+<a class="saltar" href="#principal">Saltar al contenido</a>
 
 <header class="barra">
   <div class="marca">
@@ -15,6 +17,37 @@
     <div class="marca-ruta" aria-hidden="true"></div>
     <div class="marca-frase">Un asiento, un pasajero</div>
   </div>
+  <a id="enlace-vista" class="boton claro" href="#/admin">Panel de admin <span aria-hidden="true">→</span></a>
+</header>
+
+<!-- Controles de la demo: siempre a la vista, en las dos pantallas -->
+<div class="demo" role="region" aria-label="Controles de la demostración">
+  <fieldset class="modo">
+    <legend>Boletería</legend>
+    <label class="opcion">
+      <input type="radio" name="modo" value="segura" checked>
+      <span class="opcion-caja segura">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3 7h10v7H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span><b>Segura</b><small>Lock + semáforo</small></span>
+      </span>
+    </label>
+    <label class="opcion">
+      <input type="radio" name="modo" value="insegura">
+      <span class="opcion-caja insegura">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4.5 7V5a3.5 3.5 0 0 1 6.8-1.2M3 7h10v7H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        <span><b>Insegura</b><small>sin sincronización</small></span>
+      </span>
+    </label>
+  </fieldset>
+  <p id="modo-detalle" class="modo-detalle"></p>
+  <button id="btn-reiniciar" class="boton principal compacto" type="button">
+    <svg class="giro" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.7-4M13 2v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="txt-reiniciar">Reiniciar</span>
+  </button>
+</div>
+
+<!-- ============ Vista 1: la venta ============ -->
+<div id="vista-venta">
   <ul class="metricas" aria-label="El sistema por dentro">
     <li>hilos vivos <b id="m-hilos">-</b></li>
     <li>pedidos en cola <b id="m-cola">-</b></li>
@@ -22,47 +55,157 @@
     <li>clientes comprando <b id="m-comprando">-</b></li>
     <li>vendidos <b id="m-vendidos">-</b></li>
   </ul>
-</header>
 
-<main class="contenido">
-  <section class="viajes" aria-labelledby="t-viajes">
-    <h2 id="t-viajes">Viajes</h2>
-    <ul id="lista-viajes"></ul>
-  </section>
-
-  <section class="micro" aria-labelledby="t-micro">
-    <h2 id="t-micro">Elegí tu asiento</h2>
-    <p class="ayuda" id="titulo-viaje">Cargando viajes…</p>
-    <div class="carroceria">
-      <div class="frente">frente del micro</div>
-      <div id="asientos" class="asientos" role="group" aria-label="Asientos del micro"></div>
-    </div>
-    <ul class="leyenda" aria-label="Qué significa cada color">
-      <li><span class="muestra libre">07</span>libre</li>
-      <li><span class="muestra reservado">R</span>reservado</li>
-      <li><span class="muestra pagando">$</span>pagando</li>
-      <li><span class="muestra vendido">X</span>vendido</li>
-      <li><span class="muestra tuyo">TU</span>tuyo</li>
-    </ul>
-  </section>
-
-  <aside class="panel">
-    <section class="tarjeta" aria-labelledby="t-compra">
-      <h2 id="t-compra">Tu compra</h2>
-      <div id="compra"></div>
-      <p id="mensaje" class="mensaje" role="status" aria-live="polite"></p>
+  <main id="principal" class="contenido">
+    <section class="viajes" aria-labelledby="t-viajes">
+      <h2 id="t-viajes">Viajes</h2>
+      <ul id="lista-viajes"></ul>
     </section>
-    <section class="tarjeta" aria-labelledby="t-simulados">
-      <h2 id="t-simulados">Clientes simulados</h2>
-      <p class="ayuda">Salen todos juntos a competir con vos por los asientos.</p>
-      <div class="botones">
-        <button class="boton secundario" data-cantidad="50">Lanzar 50</button>
-        <button class="boton secundario" data-cantidad="150">Lanzar 150</button>
+
+    <section class="micro" aria-labelledby="t-micro">
+      <h2 id="t-micro">Elegí tu asiento</h2>
+      <p class="ayuda" id="titulo-viaje">Cargando viajes…</p>
+      <div class="carroceria">
+        <div class="frente">frente del micro</div>
+        <div id="asientos" class="asientos" role="group" aria-label="Asientos del micro"></div>
       </div>
+      <ul class="leyenda" aria-label="Qué significa cada color">
+        <li><span class="muestra libre">07</span>libre</li>
+        <li><span class="muestra reservado">R</span>reservado</li>
+        <li><span class="muestra pagando">$</span>pagando</li>
+        <li><span class="muestra vendido">X</span>vendido</li>
+        <li><span class="muestra tuyo">TU</span>tuyo</li>
+        <li class="solo-insegura"><span class="muestra doble">2×</span>vendido dos veces</li>
+      </ul>
     </section>
-  </aside>
-</main>
 
+    <aside class="panel">
+      <section class="tarjeta" aria-labelledby="t-compra">
+        <h2 id="t-compra">Tu compra</h2>
+        <div id="compra"></div>
+        <p id="mensaje" class="mensaje" role="status" aria-live="polite"></p>
+      </section>
+      <section class="tarjeta" aria-labelledby="t-simulados">
+        <h2 id="t-simulados">Clientes simulados</h2>
+        <p class="ayuda">Salen todos juntos a competir con vos por los asientos. Después mirá el resultado en el panel de admin.</p>
+        <div class="botones">
+          <button class="boton secundario" data-cantidad="50">Lanzar 50</button>
+          <button class="boton secundario" data-cantidad="150">Lanzar 150</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<!-- ============ Vista 2: panel de admin ============ -->
+<div id="vista-admin" class="admin" hidden>
+  <div class="admin-cabecera">
+    <div>
+      <h1>Panel de administración</h1>
+      <p class="ayuda" id="admin-sub">Cargando…</p>
+    </div>
+    <div class="botones">
+      <button class="boton secundario" data-cantidad="50">Lanzar 50 clientes</button>
+      <button class="boton secundario" data-cantidad="150">Lanzar 150 clientes</button>
+    </div>
+  </div>
+
+  <!-- El veredicto: lo primero que hay que ver -->
+  <section id="veredicto" class="veredicto neutro" aria-labelledby="v-titulo">
+    <div class="heroe-caja">
+      <div class="heroe" id="v-heroe">0</div>
+      <div class="heroe-etiqueta">asientos vendidos<br>dos veces</div>
+    </div>
+    <div class="veredicto-texto">
+      <div class="veredicto-titulo"><span id="v-icono" aria-hidden="true"></span><h2 id="v-titulo">Cargando…</h2></div>
+      <p id="v-detalle"></p>
+    </div>
+  </section>
+
+  <ul class="kpis" aria-label="Resumen">
+    <li class="kpi"><span class="kpi-etiqueta">Reservas hechas</span><b id="k-reservas">0</b><span class="kpi-pie" id="k-reservas-pie"></span></li>
+    <li class="kpi"><span class="kpi-etiqueta">Compras confirmadas</span><b id="k-compras">0</b><span class="kpi-pie" id="k-compras-pie"></span></li>
+    <li class="kpi"><span class="kpi-etiqueta">Reservaron y no pagaron</span><b id="k-vencidas">0</b><span class="kpi-pie" id="k-vencidas-pie"></span></li>
+    <li class="kpi"><span class="kpi-etiqueta">Conversión</span><b id="k-conversion">—</b><span class="kpi-pie">reservas que terminaron en compra</span></li>
+    <li class="kpi"><span class="kpi-etiqueta">Ingresos</span><b id="k-ingresos">$0</b><span class="kpi-pie" id="k-ingresos-pie"></span></li>
+  </ul>
+
+  <div class="admin-grilla">
+    <section class="tarjeta ancha" aria-labelledby="t-embudo">
+      <h2 id="t-embudo">Qué pasó con cada reserva</h2>
+      <p class="ayuda">Cada reserva retiene un asiento unos segundos. Termina en compra, vence sin pagar o la rechaza la pasarela.</p>
+      <div id="barra-reservas" class="segmentos alta" role="img" aria-label="Resultado de las reservas"></div>
+      <ul id="leyenda-reservas" class="leyenda-datos"></ul>
+      <p id="nota-perdidas" class="nota"></p>
+    </section>
+
+    <section class="tarjeta c7" aria-labelledby="t-ocupacion">
+      <h2 id="t-ocupacion">Ocupación por viaje</h2>
+      <div id="lista-ocupacion" class="ocupacion"></div>
+      <ul class="leyenda-chica" aria-label="Referencias">
+        <li><span class="punto vendido"></span>vendidos</li>
+        <li><span class="punto reservado"></span>reservados</li>
+        <li><span class="punto libre"></span>libres</li>
+      </ul>
+    </section>
+
+    <section class="tarjeta c5" aria-labelledby="t-pasarela">
+      <h2 id="t-pasarela">Pasarela de pago</h2>
+      <p class="ayuda">Soporta pocos cobros a la vez. La boletería segura los ordena con un semáforo; la insegura la satura.</p>
+      <div class="medidor-fila">
+        <div class="medidor-texto"><span>Cobros simultáneos, pico</span><b id="p-pico">0 de 4</b></div>
+        <div class="medidor" id="p-medidor"><div id="p-relleno"></div></div>
+      </div>
+      <div class="dato-grande">
+        <span id="p-icono" aria-hidden="true"></span>
+        <div><b id="p-rechazos">0</b><span>cobros rechazados por saturación</span></div>
+      </div>
+      <dl class="datos-chicos">
+        <div><dt>Pedidos en cola</dt><dd id="s-cola">0</dd></div>
+        <div><dt>Workers</dt><dd id="s-workers">0</dd></div>
+        <div><dt>Hilos vivos</dt><dd id="s-hilos">0</dd></div>
+        <div><dt>Clientes simulados</dt><dd id="s-clientes">0</dd></div>
+      </dl>
+    </section>
+
+    <section class="tarjeta c8" aria-labelledby="t-actividad">
+      <div class="tarjeta-cabecera">
+        <div>
+          <h2 id="t-actividad">Actividad en vivo</h2>
+          <p class="ayuda">Reservas y compras por segundo, en los últimos 60 segundos.</p>
+        </div>
+        <ul class="leyenda-chica" aria-label="Referencias">
+          <li><span class="linea-clave reservas"></span>Reservas</li>
+          <li><span class="linea-clave compras"></span>Compras</li>
+        </ul>
+      </div>
+      <div class="grafico"><svg id="grafico-actividad" viewBox="0 0 680 210" role="img" tabindex="0"
+           aria-label="Reservas y compras por segundo en el último minuto"></svg></div>
+      <details class="tabla-alt">
+        <summary>Ver como tabla</summary>
+        <table><caption class="solo-lectores">Actividad por tramos de 5 segundos</caption>
+          <thead><tr><th scope="col">Hace</th><th scope="col">Reservas</th><th scope="col">Compras</th></tr></thead>
+          <tbody id="tabla-actividad"></tbody></table>
+      </details>
+    </section>
+
+    <section class="tarjeta c4" aria-labelledby="t-compras">
+      <h2 id="t-compras">Últimas compras</h2>
+      <ul id="lista-compras" class="compras"></ul>
+    </section>
+
+    <section class="tarjeta ancha" aria-labelledby="t-historial">
+      <h2 id="t-historial">Corridas anteriores</h2>
+      <p class="ayuda">Al reiniciar, la corrida queda guardada acá para compararla con la siguiente.</p>
+      <div id="historial"></div>
+    </section>
+  </div>
+</div>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+<div id="aviso" class="aviso-global" role="status" aria-live="polite"></div>
+
+<script src="/estaticos/admin.js"></script>
 <script src="/estaticos/app.js"></script>
 </body>
 </html>
