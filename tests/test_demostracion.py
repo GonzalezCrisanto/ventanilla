@@ -228,6 +228,12 @@ def test_cambiar_varias_veces_de_modo_no_acumula_hilos(servidor, sin_deadlock):
     for modo in ["insegura", "segura", "insegura", "segura"]:
         assert sin_deadlock(http, "POST", url + "/api/reinicio", {"modo": modo}, timeout=10)[0] == 200
 
+    # El hilo HTTP que atendió el último reinicio puede seguir vivo unos
+    # milisegundos después de mandar la respuesta: esperamos a que termine.
+    # Un hilo colgado de verdad no termina nunca, y la prueba falla igual.
+    limite = time.monotonic() + 2
+    while threading.active_count() != antes and time.monotonic() < limite:
+        time.sleep(0.01)
     assert threading.active_count() == antes
 
 
