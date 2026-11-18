@@ -1,5 +1,7 @@
 // Ventanilla: la página pide el mapa cada medio segundo y le manda las compras al servidor.
 // El estado de verdad (asientos, reservas, ventas) vive en el servidor; acá solo se muestra.
+// Dos vistas en la misma página: la venta y el panel de admin (admin.js, #/admin).
+// Arriba hay un botón para cambiar de boletería (segura o insegura) y otro para reiniciar.
 
 const estado = {
   cliente: null,   // id que nos dio el servidor, guardado en la pestaña
@@ -8,6 +10,15 @@ const estado = {
   reserva: null,   // {codigo, viaje, asiento, precio, venceEn, total}
   ocupado: false,  // hay un pedido de compra en curso
   enFila: false,   // el pago se mandó y espera en la cola del servidor
+  modo: null,      // "segura" o "insegura": la boletería que está funcionando
+  partida: null,   // número de simulación; si cambia, alguien reinició y lo nuestro ya no vale
+  reiniciando: false,
+  vista: "venta",  // "venta" o "admin"
+};
+
+const DETALLE_MODO = {
+  segura: "Cada viaje tiene su Lock y la pasarela un semáforo: nunca se vende un asiento dos veces.",
+  insegura: "Sin Lock ni semáforo: con muchos clientes a la vez se vende un asiento dos veces y se satura la pasarela.",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -18,6 +29,7 @@ const botonesAsiento = new Map();  // número -> su botón en el mapa
 let mapaDibujado = null;           // de qué viaje son los botones del mapa
 let relojReserva = null;
 let pedidosEnFila = 0;             // último dato del servidor, para el aviso de la fila
+let temporizadorAviso = null;
 
 // --- Hablar con el servidor ---------------------------------------------------
 
@@ -38,6 +50,7 @@ async function iniciarSesion(forzar) {
     return;
   }
   const r = await api("POST", "/api/sesion", {});
+  if (!r.ok) return;  // se está reiniciando: reservar() vuelve a pedir la sesión si hace falta
   estado.cliente = r.cuerpo.cliente;
   sessionStorage.setItem("ventanilla-cliente", String(estado.cliente));
 }
@@ -48,6 +61,15 @@ function mostrarMensaje(texto, tipo) {
   const mensaje = $("mensaje");
   mensaje.textContent = texto;
   mensaje.className = "mensaje" + (tipo ? " " + tipo : "");
+}
+
+// Aviso breve abajo de la pantalla, visible en las dos vistas.
+function avisar(texto, tipo) {
+  const aviso = $("aviso");
+  aviso.textContent = texto;
+  aviso.className = "aviso-global visible" + (tipo ? " " + tipo : "");
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => aviso.classList.remove("visible"), 3800);
 }
 
 // La reserva tiene que seguir vigente cuando un worker ATIENDE el pago, no cuando se manda.
@@ -115,10 +137,11 @@ function dibujarMapa(datos) {
   for (const asiento of datos.asientos) {
     const boton = botonesAsiento.get(asiento.numero);
     const texto = { libre: String(asiento.numero).padStart(2, "0"), reservado: "R", pagando: "$", vendido: "X" };
-    boton.textContent = asiento.tuyo ? "TU" : texto[asiento.estado];
-    boton.className = `asiento ${asiento.estado}` + (asiento.tuyo ? " tuyo" : "");
+    boton.textContent = asiento.doble ? "2×" : asiento.tuyo ? "TU" : texto[asiento.estado];
+    boton.className = `asiento ${asiento.estado}` + (asiento.tuyo ? " tuyo" : "") + (asiento.doble ? " doble" : "");
     boton.classList.toggle("elegido", asiento.numero === estado.elegido);
-    boton.setAttribute("aria-label", `Asiento ${asiento.numero}, ${asiento.estado}` + (asiento.tuyo ? ", tuyo" : ""));
+    boton.setAttribute("aria-label", `Asiento ${asiento.numero}, ${asiento.estado}` + (asiento.tuyo ? ", tuyo" : "")
+                                     + (asiento.doble ? ", vendido a dos pasajeros" : ""));
     boton.dataset.estado = asiento.estado;
     // La competencia en vivo: otro cliente tomó el asiento que estabas mirando.
     if (asiento.numero === estado.elegido && asiento.estado !== "libre" && !estado.ocupado) {
@@ -139,6 +162,86 @@ function mostrarMetricas(sistema) {
   pedidosEnFila = sistema.cola;
   const aviso = $("aviso-fila");
   if (aviso) aviso.textContent = textoAviso();
+  sincronizarPartida(sistema);
+}
+
+// El servidor dice qué boletería funciona y en qué simulación vamos. Si no coincide con lo que
+// tenemos, alguien reinició o cambió de modo desde otra pestaña: se descarta lo nuestro.
+function sincronizarPartida(sistema) {
+  if (estado.reiniciando) return;  // el reinicio que hicimos nosotros lo resuelve reiniciar()
+  if (estado.partida !== null && sistema.partida !== estado.partida) {
+    estado.partida = sistema.partida;
+    descartarCompra();
+    iniciarSesion(true);
+    avisar("La simulación se reinició.");
+  }
+  estado.partida = sistema.partida;
+  if (sistema.modo !== estado.modo) aplicarModo(sistema.modo);
+}
+
+function aplicarModo(modo) {
+  estado.modo = modo;
+  document.body.dataset.modo = modo;
+  for (const radio of document.querySelectorAll('input[name="modo"]')) radio.checked = radio.value === modo;
+  $("modo-detalle").textContent = DETALLE_MODO[modo];
+}
+
+// Lo que quedó de la simulación anterior: la reserva en curso, el asiento elegido, los mensajes.
+function descartarCompra() {
+  clearInterval(relojReserva);
+  estado.reserva = null;
+  estado.elegido = null;
+  mostrarMensaje("");
+  dibujarCompra();
+}
+
+function marcarReinicio(reiniciando) {
+  estado.reiniciando = reiniciando;
+  document.body.classList.toggle("reiniciando", reiniciando);
+  const boton = $("btn-reiniciar");
+  boton.setAttribute("aria-busy", String(reiniciando));
+  boton.disabled = reiniciando;
+  $("txt-reiniciar").textContent = reiniciando ? "Reiniciando…" : "Reiniciar";
+  for (const radio of document.querySelectorAll('input[name="modo"]')) radio.disabled = reiniciando;
+}
+
+// Reiniciar deja todos los asientos libres y la simulación en cero. Con `modo` también cambia de boletería.
+async function reiniciar(modo) {
+  if (estado.reiniciando) return;
+  const anterior = estado.modo;
+  marcarReinicio(true);
+  if (modo) aplicarModo(modo);  // el cambio de color se ve al instante
+  try {
+    const r = await api("POST", "/api/reinicio", modo ? { modo } : {});
+    if (!r.ok) throw new Error(r.cuerpo.error);
+    estado.partida = r.cuerpo.partida;
+    descartarCompra();
+    aplicarModo(r.cuerpo.modo);
+    await iniciarSesion(true);  // la memoria de la web también empezó de cero
+    avisar(modo ? `Boletería ${r.cuerpo.modo}: simulación reiniciada.` : "Simulación reiniciada: todos los asientos están libres.");
+  } catch (error) {
+    aplicarModo(anterior);
+    avisar("No se pudo reiniciar. Probá de nuevo.", "error");
+  } finally {
+    marcarReinicio(false);
+  }
+}
+
+// --- Las dos vistas: #/ es la venta y #/admin el panel -------------------------------
+
+function aplicarVista() {
+  const hash = location.hash;
+  if (hash !== "" && hash !== "#/" && hash !== "#/admin") return;  // otros enlaces (el de saltar) no cambian de vista
+  const admin = hash === "#/admin";
+  estado.vista = admin ? "admin" : "venta";
+  document.body.dataset.vista = estado.vista;
+  $("vista-venta").hidden = admin;
+  $("vista-admin").hidden = !admin;
+  const enlace = $("enlace-vista");
+  enlace.href = admin ? "#/" : "#/admin";
+  enlace.textContent = admin ? "← Volver a la venta" : "Panel de admin →";
+  document.title = admin ? "Panel de admin · Ventanilla" : "Ventanilla · pasajes de micro";
+  if (typeof activarAdmin === "function") activarAdmin(admin);
 }
 
 function dibujarCompra() {
@@ -277,8 +380,12 @@ async function pagar() {
 }
 
 async function lanzarClientes(cantidad) {
-  const r = await api("POST", "/api/simulacion", { cantidad });
-  mostrarMensaje(r.ok ? `Salieron ${cantidad} clientes simulados a comprar.` : r.cuerpo.error, r.ok ? "ok" : "error");
+  try {
+    const r = await api("POST", "/api/simulacion", { cantidad });
+    avisar(r.ok ? `Salieron ${r.cuerpo.lanzados} clientes simulados a comprar.` : r.cuerpo.error, r.ok ? "" : "error");
+  } catch (error) {
+    avisar("Se perdió la conexión con el servidor.", "error");
+  }
 }
 
 // --- Consultas periódicas ---------------------------------------------------------
@@ -308,17 +415,35 @@ async function actualizarViajes() {
   setTimeout(actualizarViajes, 2000);
 }
 
-async function arrancar() {
-  await iniciarSesion(false);
-  const r = await api("GET", "/api/viajes");
-  estado.viaje = r.cuerpo[0].id;
-  dibujarViajes(r.cuerpo);
-  dibujarCompra();
+function conectarControles() {
   for (const boton of document.querySelectorAll("[data-cantidad]")) {
     boton.addEventListener("click", () => lanzarClientes(Number(boton.dataset.cantidad)));
   }
+  for (const radio of document.querySelectorAll('input[name="modo"]')) {
+    radio.addEventListener("change", () => { if (radio.checked && radio.value !== estado.modo) reiniciar(radio.value); });
+  }
+  $("btn-reiniciar").addEventListener("click", () => reiniciar());
+  window.addEventListener("hashchange", aplicarVista);
+}
+
+async function cargarInicio() {
+  await iniciarSesion(false);
+  const r = await api("GET", "/api/viajes");
+  if (!r.ok) {  // el servidor justo se está reiniciando: se vuelve a intentar enseguida
+    setTimeout(cargarInicio, 500);
+    return;
+  }
+  estado.viaje = r.cuerpo[0].id;
+  dibujarViajes(r.cuerpo);
+  dibujarCompra();
   actualizarMapa();
   setTimeout(actualizarViajes, 2000);
+}
+
+async function arrancar() {
+  conectarControles();
+  aplicarVista();
+  await cargarInicio();
 }
 
 arrancar();
