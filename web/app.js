@@ -121,8 +121,9 @@ function crearMapa(asientos) {
     const boton = document.createElement("button");
     const posicion = (asiento.numero - 1) % 4;  // 0 y 1 a la izquierda del pasillo, 2 y 3 a la derecha
     boton.className = "asiento";
-    boton.style.gridColumn = String(posicion < 2 ? posicion + 1 : posicion + 2);
-    boton.style.gridRow = String(Math.floor((asiento.numero - 1) / 4) + 1);
+    // El CSS decide la orientación del micro: parado en pantallas angostas, acostado en las anchas.
+    boton.style.setProperty("--lado", String(posicion < 2 ? posicion + 1 : posicion + 2));
+    boton.style.setProperty("--fila", String(Math.floor((asiento.numero - 1) / 4) + 1));
     boton.addEventListener("click", () => tocarAsiento(asiento.numero));
     contenedor.appendChild(boton);
     botonesAsiento.set(asiento.numero, boton);
