@@ -116,7 +116,12 @@ body[data-modo="insegura"] .demo { background: var(--rojo-claro); border-bottom-
 .opcion input:checked + .opcion-caja.insegura { background: var(--rojo); }
 .opcion input:focus-visible + .opcion-caja { outline: 3px solid var(--amarillo); outline-offset: 2px; }
 
-.modo-detalle { flex: 1 1 260px; min-width: 240px; margin: 0; font-size: 14px; color: var(--gris); }
+.simulados { display: flex; align-items: center; gap: 8px; }
+.simulados-etiqueta { font-size: 14px; color: var(--gris); }
+body[data-modo="insegura"] .simulados-etiqueta { color: var(--rojo-texto); }
+.boton.secundario.compacto { padding: 7px 12px; }
+
+.modo-detalle { flex: 1 1 260px; min-width: 200px; margin: 0; font-size: 14px; color: var(--gris); }
 body[data-modo="insegura"] .modo-detalle { color: var(--rojo-texto); }
 
 /* ---------- Vista de venta ---------- */
@@ -171,6 +176,7 @@ h2 { font-family: var(--titular); font-weight: 500; font-size: 24px; margin: 0 0
 }
 .frente { text-align: center; color: var(--gris); font-size: 13px; border-bottom: 1px dashed var(--linea); padding-bottom: 8px; margin-bottom: 14px; }
 .asientos { display: grid; grid-template-columns: repeat(2, 44px) 28px repeat(2, 44px); grid-auto-rows: 40px; gap: 6px; }
+.asientos .asiento { grid-column: var(--lado); grid-row: var(--fila); }
 
 .asiento, .muestra {
   border-radius: 8px 8px 4px 4px;
@@ -390,6 +396,29 @@ td.mal { color: var(--rojo-texto); font-weight: 500; }
   .heroe-caja { min-width: 96px; }
   .veredicto-titulo h2 { font-size: 24px; }
 }
+/* Pantallas de escritorio: la venta entra entera en la ventana, sin scroll.
+   El micro se acuesta (frente a la izquierda) y la cabecera se compacta. */
+@media (min-width: 1100px) {
+  body[data-vista="venta"] .barra { padding-top: 10px; padding-bottom: 10px; }
+  body[data-vista="venta"] .marca-nombre { font-size: 30px; }
+  body[data-vista="venta"] .demo { padding-top: 8px; padding-bottom: 8px; }
+  .opcion-caja { padding: 6px 16px; }
+  .metricas { padding-top: 12px; }
+  .contenido { grid-template-columns: 220px minmax(0, 1fr) 270px; gap: 20px; padding-top: 16px; padding-bottom: 20px; }
+  .carroceria { display: flex; align-items: center; gap: 12px; border-radius: 44px 12px 12px 44px; padding: 16px 16px 16px 12px; }
+  .frente { writing-mode: vertical-rl; transform: rotate(180deg); border-bottom: 0; border-left: 1px dashed var(--linea); padding: 0 0 0 8px; margin: 0; }
+  .asientos { grid-template-columns: none; grid-template-rows: repeat(2, 40px) 18px repeat(2, 40px); grid-auto-columns: 40px; gap: 5px; }
+  .asientos .asiento { grid-column: var(--fila); grid-row: var(--lado); }
+  .leyenda { margin-top: 12px; }
+}
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .simulados-etiqueta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .modo-detalle { min-width: 160px; }
+}
+@media (min-width: 1280px) {
+  .contenido { grid-template-columns: 250px minmax(0, 1fr) 280px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
