@@ -397,19 +397,23 @@ td.mal { color: var(--rojo-texto); font-weight: 500; }
   .veredicto-titulo h2 { font-size: 24px; }
 }
 /* Pantallas de escritorio: la venta entra entera en la ventana, sin scroll.
-   El micro se acuesta (frente a la izquierda) y la cabecera se compacta. */
+   El micro sigue parado: el alto de los asientos se ajusta al alto de la ventana y la
+   leyenda pasa al costado del micro. */
 @media (min-width: 1100px) {
   body[data-vista="venta"] .barra { padding-top: 10px; padding-bottom: 10px; }
   body[data-vista="venta"] .marca-nombre { font-size: 30px; }
   body[data-vista="venta"] .demo { padding-top: 8px; padding-bottom: 8px; }
   .opcion-caja { padding: 6px 16px; }
-  .metricas { padding-top: 12px; }
-  .contenido { grid-template-columns: 220px minmax(0, 1fr) 270px; gap: 20px; padding-top: 16px; padding-bottom: 20px; }
-  .carroceria { display: flex; align-items: center; gap: 12px; border-radius: 44px 12px 12px 44px; padding: 16px 16px 16px 12px; }
-  .frente { writing-mode: vertical-rl; transform: rotate(180deg); border-bottom: 0; border-left: 1px dashed var(--linea); padding: 0 0 0 8px; margin: 0; }
-  .asientos { grid-template-columns: none; grid-template-rows: repeat(2, 40px) 18px repeat(2, 40px); grid-auto-columns: 40px; gap: 5px; }
-  .asientos .asiento { grid-column: var(--fila); grid-row: var(--lado); }
-  .leyenda { margin-top: 12px; }
+  .metricas { padding-top: 10px; }
+  .contenido { grid-template-columns: 220px minmax(0, 1fr) 270px; gap: 20px; padding-top: 12px; padding-bottom: 12px; --alto: clamp(24px, calc((100dvh - 380px) / 10), 40px); }
+  .micro { display: grid; grid-template-columns: auto auto; justify-content: center; align-content: start; column-gap: 28px; }
+  .micro h2 { margin-bottom: 4px; grid-column: 1 / -1; }
+  .micro .ayuda { margin-bottom: 8px; grid-column: 1 / -1; }
+  .carroceria { padding: 10px 18px 14px; }
+  .frente { padding-bottom: 5px; margin-bottom: 8px; }
+  .asientos { grid-template-columns: repeat(2, var(--alto)) calc(var(--alto) * 0.6) repeat(2, var(--alto)); grid-auto-rows: var(--alto); gap: 4px; }
+  .asiento { font-size: 13px; }
+  .leyenda { flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; align-items: flex-start; gap: 10px; margin: 8px 0 0; }
 }
 @media (min-width: 1100px) and (max-width: 1279px) {
   .simulados-etiqueta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
