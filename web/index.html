@@ -40,6 +40,12 @@
     </label>
   </fieldset>
   <p id="modo-detalle" class="modo-detalle"></p>
+  <div class="simulados" role="group" aria-labelledby="t-simulados"
+       title="Salen todos juntos a competir con vos por los asientos. Después mirá el resultado en el panel de admin.">
+    <span id="t-simulados" class="simulados-etiqueta">Clientes simulados</span>
+    <button class="boton secundario compacto" type="button" data-cantidad="50">Lanzar 50</button>
+    <button class="boton secundario compacto" type="button" data-cantidad="150">Lanzar 150</button>
+  </div>
   <button id="btn-reiniciar" class="boton principal compacto" type="button">
     <svg class="giro" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.7-4M13 2v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span id="txt-reiniciar">Reiniciar</span>
@@ -85,14 +91,6 @@
         <div id="compra"></div>
         <p id="mensaje" class="mensaje" role="status" aria-live="polite"></p>
       </section>
-      <section class="tarjeta" aria-labelledby="t-simulados">
-        <h2 id="t-simulados">Clientes simulados</h2>
-        <p class="ayuda">Salen todos juntos a competir con vos por los asientos. Después mirá el resultado en el panel de admin.</p>
-        <div class="botones">
-          <button class="boton secundario" data-cantidad="50">Lanzar 50</button>
-          <button class="boton secundario" data-cantidad="150">Lanzar 150</button>
-        </div>
-      </section>
     </aside>
   </main>
 </div>
@@ -103,10 +101,6 @@
     <div>
       <h1>Panel de administración</h1>
       <p class="ayuda" id="admin-sub">Cargando…</p>
-    </div>
-    <div class="botones">
-      <button class="boton secundario" data-cantidad="50">Lanzar 50 clientes</button>
-      <button class="boton secundario" data-cantidad="150">Lanzar 150 clientes</button>
     </div>
   </div>
 
